@@ -7,30 +7,29 @@ from datetime import datetime
 def export_rating_to_csv(students: List[Dict]) -> str:
     """
     Формирует CSV-строку с рейтингом.
-    students: список, полученный из ranker (с полями rank, name, rating, fives_count)
+    Используем ';' как разделитель — Excel на русской локали macOS/Windows
+    открывает такой файл корректно (все столбцы на месте).
+    BOM (\ufeff) заставляет Excel распознать UTF-8.
     """
-    output = io.StringIO()
-    writer = csv.writer(output, lineterminator="\n")
+    output = io.StringIO(newline='')
+    writer = csv.writer(output, delimiter=';', lineterminator="\r\n")
 
-    # Заголовок
-    writer.writerow(["Место", "ФИО", "Рейтинг", "Количество пятёрок", "Дата экспорта"])
+    writer.writerow(["Место", "ФИО", "Рейтинг", "Дата экспорта"])
 
-    # Данные
     now = datetime.now().strftime("%Y-%m-%d %H:%M")
     for s in students:
         writer.writerow([
             s.get("rank", ""),
             s.get("name", ""),
             s.get("rating", ""),
-            s.get("fives_count", ""),
             now
         ])
 
-    return output.getvalue()
+    content = output.getvalue()
+    return "\ufeff" + content
 
 
 def export_rating_to_file(students: List[Dict], filepath: str) -> None:
-    """Сохранить CSV на диск."""
     content = export_rating_to_csv(students)
-    with open(filepath, "w", encoding="utf-8-sig") as f:
+    with open(filepath, "w", encoding="utf-8", newline='') as f:
         f.write(content)
