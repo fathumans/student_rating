@@ -69,7 +69,6 @@ def test_get_by_id(temp_data_dir):
 
 
 def test_specific_loaders(temp_data_dir):
-    # Копируем фикстуры во временную папку
     fixtures = Path(__file__).parent.parent / "fixtures"
     for fname in ["students.json", "subjects.json", "grades.json"]:
         src = fixtures / fname
@@ -78,8 +77,8 @@ def test_specific_loaders(temp_data_dir):
             dst.write_text(src.read_text(), encoding="utf-8")
 
     students = json_storage.load_students()
-    assert len(students) == 3
-    assert students[0]["name"] == "Иванов Иван Иванович"
+    assert len(students) == 5  # теперь 5 студентов в фикстурах
+    assert students[0]["name"] == "Анисимов Никита Сергеевич"
 
     subjects = json_storage.load_subjects()
-    assert subjects[0]["weight"] == 0.5
+    assert subjects[0]["weight"] == 1.0

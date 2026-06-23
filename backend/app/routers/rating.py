@@ -4,26 +4,67 @@ from typing import List
 
 from app.storage import json_storage, csv_exporter
 from app.core import aggregator, ranker, analyzer, dynamics
-from app.schemas import RatingItem, ProblemSubject, PeriodComparison
+from app.schemas import RatingItem, ProblemSubject, PeriodComparison, StudentDetail, SubjectStatistics
 
 router = APIRouter(prefix="/rating", tags=["Рейтинг"])
 
 
-@router.get("", response_model=List[RatingItem])
+@router.get("")  # убрали response_model=List[RatingItem]
 def get_rating():
     students = json_storage.load_students()
     grades = json_storage.load_grades()
     subjects = json_storage.load_subjects()
     if not students or not grades:
         return []
-    return ranker.rank_students(students, grades, subjects)
+    return ranker.get_combined_ranking(students, grades, subjects)
+
+
+@router.get("/absolute", response_model=List[dict])
+def get_absolute_rating():
+    students = json_storage.load_students()
+    grades = json_storage.load_grades()
+    subjects = json_storage.load_subjects()
+    return ranker.rank_students_absolute(students, grades, subjects)
+
+
+@router.get("/weighted", response_model=List[dict])
+def get_weighted_rating():
+    students = json_storage.load_students()
+    grades = json_storage.load_grades()
+    subjects = json_storage.load_subjects()
+    return ranker.rank_students_weighted(students, grades, subjects)
+
+
+@router.get("/student/{student_id}", response_model=StudentDetail)
+def get_student_detail(student_id: int):
+    students = json_storage.load_students()
+    grades = json_storage.load_grades()
+    subjects = json_storage.load_subjects()
+
+    student = next((s for s in students if s["id"] == student_id), None)
+    if not student:
+        raise HTTPException(status_code=404, detail="Студент не найден")
+
+    return {
+        "student": student,
+        "subjects": aggregator.get_student_subjects_detail(student_id, grades, subjects),
+        "absolute_rating": aggregator.calculate_absolute_rating(student_id, grades, subjects),
+        "weighted_rating": aggregator.calculate_weighted_rating(student_id, grades, subjects),
+    }
 
 
 @router.get("/problems", response_model=List[ProblemSubject])
-def get_problem_subjects(threshold: float = 0.15):
+def get_problem_subjects(threshold: float = 0.20):
     grades = json_storage.load_grades()
     subjects = json_storage.load_subjects()
     return analyzer.find_problem_subjects(grades, subjects, threshold)
+
+
+@router.get("/statistics", response_model=List[SubjectStatistics])
+def get_subjects_statistics():
+    grades = json_storage.load_grades()
+    subjects = json_storage.load_subjects()
+    return analyzer.get_subject_statistics(grades, subjects)
 
 
 @router.get("/dynamics")
@@ -43,7 +84,7 @@ def export_csv():
     if not students or not grades:
         raise HTTPException(status_code=400, detail="Нет данных для экспорта")
 
-    ranked = ranker.rank_students(students, grades, subjects)
+    ranked = ranker.get_combined_ranking(students, grades, subjects)
     csv_content = csv_exporter.export_rating_to_csv(ranked)
 
     return PlainTextResponse(

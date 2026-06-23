@@ -1,6 +1,6 @@
 from typing import List, Dict
 import statistics
-from .aggregator import calculate_weighted_rating
+from .aggregator import calculate_absolute_rating, calculate_weighted_rating
 
 
 def compare_periods(
@@ -10,27 +10,39 @@ def compare_periods(
         period2: str
 ) -> Dict:
     """
-    Сравнение среднего балла группы между двумя периодами.
-    Возвращает дельту и тренд (рост / падение / стабильность).
+    Сравнение группы между двумя периодами: абсолютный и взвешенный рейтинг.
     """
-    def _avg_for_period(p: str) -> float:
+    def _avg_for_period(p: str, weighted: bool = False) -> float:
         p_grades = [g for g in grades if g.get("period") == p]
         sids = {g["student_id"] for g in p_grades}
         if not sids:
             return 0.0
-        ratings = [calculate_weighted_rating(sid, p_grades, subjects) for sid in sids]
+        if weighted:
+            ratings = [calculate_weighted_rating(sid, p_grades, subjects) for sid in sids]
+        else:
+            ratings = [calculate_absolute_rating(sid, p_grades, subjects) for sid in sids]
         return round(statistics.mean(ratings), 2)
 
-    avg1 = _avg_for_period(period1)
-    avg2 = _avg_for_period(period2)
+    abs1 = _avg_for_period(period1, weighted=False)
+    abs2 = _avg_for_period(period2, weighted=False)
+    w1 = _avg_for_period(period1, weighted=True)
+    w2 = _avg_for_period(period2, weighted=True)
 
     return {
         "period1": period1,
         "period2": period2,
-        "average1": avg1,
-        "average2": avg2,
-        "delta": round(avg2 - avg1, 2),
-        "trend": "рост" if avg2 > avg1 else ("падение" if avg2 < avg1 else "стабильность")
+        "absolute": {
+            "average1": abs1,
+            "average2": abs2,
+            "delta": round(abs2 - abs1, 2),
+            "trend": "рост" if abs2 > abs1 else ("падение" if abs2 < abs1 else "стабильность")
+        },
+        "weighted": {
+            "average1": w1,
+            "average2": w2,
+            "delta": round(w2 - w1, 2),
+            "trend": "рост" if w2 > w1 else ("падение" if w2 < w1 else "стабильность")
+        }
     }
 
 
@@ -39,7 +51,7 @@ def student_dynamics(
         grades: List[Dict],
         subjects: List[Dict]
 ) -> List[Dict]:
-    """Динамика конкретного студента по семестрам/периодам."""
+    """Динамика конкретного студента по периодам (оба рейтинга)."""
     periods = sorted({
         g.get("period")
         for g in grades
@@ -51,10 +63,10 @@ def student_dynamics(
             g for g in grades
             if g.get("student_id") == student_id and g.get("period") == p
         ]
-        rating = calculate_weighted_rating(student_id, p_grades, subjects)
         result.append({
             "period": p,
-            "rating": rating,
-            "grades_count": len(p_grades)
+            "absolute_rating": calculate_absolute_rating(student_id, p_grades, subjects),
+            "weighted_rating": calculate_weighted_rating(student_id, p_grades, subjects),
+            "subjects_count": len(p_grades),
         })
     return result

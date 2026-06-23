@@ -1,13 +1,26 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from contextlib import asynccontextmanager
+import os
 
 from app.routers import students, subjects, grades, rating
-from app.seed import seed_if_empty
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Lifespan: запускаем seed при старте, если не отключён."""
+    if not os.getenv("NO_SEED"):
+        from app.seed import seed_if_empty
+        seed_if_empty()
+    yield
+    # Здесь можно добавить cleanup при остановке
+
 
 app = FastAPI(
     title="Рейтинговая система студентов",
     description="Учебный проект Б-10. Алгоритмическое ядро: взвешенное агрегирование и ранжирование.",
-    version="1.0.0"
+    version="1.0.0",
+    lifespan=lifespan,
 )
 
 app.add_middleware(
@@ -24,11 +37,6 @@ app.include_router(grades.router, prefix="/api")
 app.include_router(rating.router, prefix="/api")
 
 
-@app.on_event("startup")
-def startup():
-    seed_if_empty()
-
-
 @app.get("/")
 def root():
     return {
@@ -40,4 +48,4 @@ def root():
 
 @app.get("/health")
 def health():
-    return {"status": "ok"} 
+    return {"status": "ok"}

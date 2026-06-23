@@ -6,30 +6,54 @@ from datetime import datetime
 
 def export_rating_to_csv(students: List[Dict]) -> str:
     """
-    Формирует CSV-строку с рейтингом.
-    Используем ';' как разделитель — Excel на русской локали macOS/Windows
-    открывает такой файл корректно (все столбцы на месте).
-    BOM (\ufeff) заставляет Excel распознать UTF-8.
+    Экспорт объединённого рейтинга в CSV (Excel-friendly).
     """
     output = io.StringIO(newline='')
     writer = csv.writer(output, delimiter=';', lineterminator="\r\n")
 
-    writer.writerow(["Место", "ФИО", "Рейтинг", "Дата экспорта"])
+    writer.writerow([
+        "Место (абс)", "Место (взв)", "ФИО", "Группа",
+        "Абсолютный балл", "Взвешенный балл", "Разница",
+        "Отличных предметов", "Дата экспорта"
+    ])
 
     now = datetime.now().strftime("%Y-%m-%d %H:%M")
     for s in students:
         writer.writerow([
-            s.get("rank", ""),
+            s.get("absolute_rank", ""),
+            s.get("weighted_rank", ""),
             s.get("name", ""),
-            s.get("rating", ""),
+            s.get("group", ""),
+            s.get("absolute_rating", ""),
+            s.get("weighted_rating", ""),
+            s.get("rating_diff", ""),
+            s.get("excellent_count", ""),
             now
         ])
 
-    content = output.getvalue()
-    return "\ufeff" + content
+    return "\ufeff" + output.getvalue()
 
 
-def export_rating_to_file(students: List[Dict], filepath: str) -> None:
-    content = export_rating_to_csv(students)
-    with open(filepath, "w", encoding="utf-8", newline='') as f:
-        f.write(content)
+def export_student_detail_to_csv(student: Dict, subjects: List[Dict]) -> str:
+    """Экспорт детализации студента в CSV."""
+    output = io.StringIO(newline='')
+    writer = csv.writer(output, delimiter=';', lineterminator="\r\n")
+
+    writer.writerow(["Предмет", "Тип", "Вес", "Текущая (40)", "Промежуточная (60)", "Итог", "Оценка", "Статус"])
+    for subj in subjects:
+        writer.writerow([
+            subj["subject_name"],
+            subj["type"],
+            subj["weight"],
+            subj["current"],
+            subj["final"],
+            subj["total_score"],
+            subj["grade"],
+            subj["status"],
+        ])
+
+    writer.writerow([])
+    writer.writerow(["Абсолютный рейтинг:", student.get("absolute_rating", "")])
+    writer.writerow(["Взвешенный рейтинг:", student.get("weighted_rating", "")])
+
+    return "\ufeff" + output.getvalue()
