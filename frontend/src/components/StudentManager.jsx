@@ -1,79 +1,52 @@
 import { useState, useEffect } from 'react';
 import { api } from '../api/client';
 
-export default function StudentManager() {
+export default function StudentManager({ group }) {
     const [students, setStudents] = useState([]);
     const [name, setName] = useState('');
-    const [group, setGroup] = useState('БИН-24-1');
+    const [groupInput, setGroupInput] = useState(group);
 
-    const load = async () => {
-        try {
-            const data = await api.getStudents();
-            setStudents(data);
-        } catch (err) {
-            console.error('Ошибка загрузки студентов:', err);
-            alert('Не удалось загрузить студентов: ' + err.message);
-        }
-    };
+    useEffect(() => {
+        api.getStudents().then(s => setStudents(s)).catch(err => alert('Ошибка: ' + err.message));
+    }, []);
 
-    useEffect(() => { load(); }, []);
+    useEffect(() => {
+        setGroupInput(group);
+    }, [group]);
 
     const handleAdd = async (e) => {
         e.preventDefault();
         if (!name.trim()) return;
         try {
-            await api.createStudent({ name: name.trim(), group: group.trim() });
+            await api.createStudent({ name, group: groupInput });
             setName('');
-            await load(); // ← await обязателен!
-        } catch (err) {
-            console.error('Ошибка добавления:', err);
-            alert('Не удалось добавить студента: ' + err.message);
-        }
+            setStudents(await api.getStudents());
+        } catch (err) { alert('Ошибка: ' + err.message); }
     };
 
     const handleDelete = async (id) => {
-        if (!confirm('Удалить студента?')) return;
-        try {
-            await api.deleteStudent(id);
-            await load(); // ← await обязателен!
-        } catch (err) {
-            console.error('Ошибка удаления:', err);
-            alert('Не удалось удалить: ' + err.message);
-        }
+        if (!confirm('Удалить?')) return;
+        try { await api.deleteStudent(id); setStudents(await api.getStudents()); }
+        catch (err) { alert('Ошибка: ' + err.message); }
     };
+
+    const groupStudents = group ? students.filter(s => s.group === group) : students;
 
     return (
         <div>
-            <h2>Студенты</h2>
-            <form onSubmit={handleAdd} className="form-row">
-                <input
-                    placeholder="ФИО"
-                    value={name}
-                    onChange={e => setName(e.target.value)}
-                    required
-                />
-                <input
-                    placeholder="Группа"
-                    value={group}
-                    onChange={e => setGroup(e.target.value)}
-                />
-                <button type="submit">Добавить</button>
+            <h5 className="mb-3">Студенты — {group}</h5>
+            <form onSubmit={handleAdd} className="row g-2 mb-3">
+                <div className="col-md-6"><input type="text" className="form-control form-control-sm" placeholder="ФИО" value={name} onChange={e => setName(e.target.value)} /></div>
+                <div className="col-md-3"><input type="text" className="form-control form-control-sm" placeholder="Группа" value={groupInput} onChange={e => setGroupInput(e.target.value)} /></div>
+                <div className="col-md-3"><button type="submit" className="btn btn-sm btn-outline-secondary w-100">Добавить</button></div>
             </form>
-            <table className="data-table">
-                <thead>
-                <tr><th>ID</th><th>ФИО</th><th>Группа</th><th></th></tr>
-                </thead>
+            <table className="table table-sm">
                 <tbody>
-                {students.map(s => (
+                {groupStudents.map(s => (
                     <tr key={s.id}>
-                        <td>{s.id}</td>
                         <td>{s.name}</td>
-                        <td>{s.group}</td>
-                        <td>
-                            <button className="btn-danger" onClick={() => handleDelete(s.id)}>
-                                Удалить
-                            </button>
-                        </td>
+                        <td className="text-muted small">{s.group}</td>
+                        <td className="text-end"><button className="btn btn-sm text-danger p-0" onClick={() => handleDelete(s.id)}>Удалить</button></td>
                     </tr>
                 ))}
                 </tbody>

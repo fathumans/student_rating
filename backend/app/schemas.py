@@ -54,17 +54,15 @@ class GradeOut(GradeBase):
     model_config = ConfigDict(from_attributes=True)
 
 
-# === РЕЙТИНГ — НОВЫЕ СХЕМЫ ===
 class RatingItem(BaseModel):
     id: int
     name: str
     group: str
-    absolute_rating: float = Field(..., description="Средний балл 0-100")
+    absolute_rating: float
     absolute_rank: int
-    weighted_rating: float = Field(..., description="Взвешенный средний балл 0-100")
+    weighted_rating: float
     weighted_rank: int
-    rating_diff: int = Field(..., description="Разница позиций: абс - взвеш")
-    excellent_count: int = Field(..., description="Количество предметов 91+")
+    rating_diff: int
 
     model_config = ConfigDict(extra='ignore', from_attributes=True)
 

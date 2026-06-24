@@ -67,11 +67,7 @@ def rank_students_weighted(
     return enriched
 
 
-def get_combined_ranking(
-        students: List[Dict],
-        grades: List[Dict],
-        subjects: List[Dict]
-) -> List[Dict]:
+def get_combined_ranking(students, grades, subjects):
     abs_ranked = {item["id"]: item for item in rank_students_absolute(students, grades, subjects)}
     w_ranked = {item["id"]: item for item in rank_students_weighted(students, grades, subjects)}
 
@@ -87,6 +83,5 @@ def get_combined_ranking(
             "weighted_rating": w_data.get("weighted_rating", 0),
             "weighted_rank": w_data.get("weighted_rank", 0),
             "rating_diff": abs_data.get("absolute_rank", 0) - w_data.get("weighted_rank", 0),
-            "excellent_count": abs_data.get("excellent_count", 0),
         })
     return result

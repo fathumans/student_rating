@@ -1,93 +1,59 @@
 import { useState, useEffect } from 'react';
 import { api } from '../api/client';
 
+const TYPES = { exam: 'Экзамен', test: 'Зачёт', practice: 'Практика' };
+
 export default function SubjectManager() {
     const [subjects, setSubjects] = useState([]);
     const [name, setName] = useState('');
     const [type, setType] = useState('exam');
-    const [weight, setWeight] = useState(0.5);
 
-    const load = async () => {
-        try {
-            const data = await api.getSubjects();
-            setSubjects(data);
-        } catch (err) {
-            console.error('Ошибка загрузки предметов:', err);
-            alert('Не удалось загрузить предметы: ' + err.message);
-        }
-    };
-
-    useEffect(() => { load(); }, []);
+    useEffect(() => {
+        api.getSubjects().then(setSubjects).catch(err => alert('Ошибка: ' + err.message));
+    }, []);
 
     const handleAdd = async (e) => {
         e.preventDefault();
         if (!name.trim()) return;
+        const weights = { exam: 1.0, test: 0.6, practice: 1.0 };
         try {
-            await api.createSubject({
-                name: name.trim(),
-                type,
-                weight: Number(weight)
-            });
+            await api.createSubject({ name, type, weight: weights[type] });
             setName('');
-            await load(); // ← await
-        } catch (err) {
-            console.error('Ошибка добавления:', err);
-            alert('Не удалось добавить предмет: ' + err.message);
-        }
+            setSubjects(await api.getSubjects());
+        } catch (err) { alert('Ошибка: ' + err.message); }
     };
 
     const handleDelete = async (id) => {
-        if (!confirm('Удалить предмет?')) return;
-        try {
-            await api.deleteSubject(id);
-            await load();
-        } catch (err) {
-            console.error('Ошибка удаления:', err);
-            alert('Не удалось удалить: ' + err.message);
-        }
+        if (!confirm('Удалить?')) return;
+        try { await api.deleteSubject(id); setSubjects(await api.getSubjects()); }
+        catch (err) { alert('Ошибка: ' + err.message); }
     };
 
     return (
         <div>
-            <h2>Предметы</h2>
-            <form onSubmit={handleAdd} className="form-row">
-                <input
-                    placeholder="Название"
-                    value={name}
-                    onChange={e => setName(e.target.value)}
-                    required
-                />
-                <select value={type} onChange={e => setType(e.target.value)}>
-                    <option value="exam">Экзамен</option>
-                    <option value="test">Зачёт</option>
-                    <option value="practice">Практика</option>
-                </select>
-                <input
-                    type="number"
-                    step="0.1"
-                    min="0"
-                    max="1"
-                    value={weight}
-                    onChange={e => setWeight(e.target.value)}
-                />
-                <button type="submit">Добавить</button>
+            <form onSubmit={handleAdd} className="row g-3 mb-4">
+                <div className="col-md-6">
+                    <input type="text" className="form-control form-control-sm" placeholder="Название" value={name} onChange={e => setName(e.target.value)} />
+                </div>
+                <div className="col-md-3">
+                    <select className="form-select form-select-sm" value={type} onChange={e => setType(e.target.value)}>
+                        <option value="exam">Экзамен</option>
+                        <option value="test">Зачёт</option>
+                        <option value="practice">Практика</option>
+                    </select>
+                </div>
+                <div className="col-md-3">
+                    <button type="submit" className="btn btn-sm btn-outline-secondary w-100">Добавить</button>
+                </div>
             </form>
-            <table className="data-table">
-                <thead>
-                <tr><th>ID</th><th>Название</th><th>Тип</th><th>Вес</th><th></th></tr>
-                </thead>
+            <table className="table table-sm">
                 <tbody>
                 {subjects.map(s => (
                     <tr key={s.id}>
-                        <td>{s.id}</td>
                         <td>{s.name}</td>
-                        <td>{s.type}</td>
-                        <td>{s.weight}</td>
-                        <td>
-                            <button className="btn-danger" onClick={() => handleDelete(s.id)}>
-                                Удалить
-                            </button>
-                        </td>
+                        <td className="text-muted small text-center">{TYPES[s.type]}</td>
+                        <td className="text-muted small text-center">{s.weight}</td>
+                        <td className="text-end"><button className="btn btn-sm text-danger p-0" onClick={() => handleDelete(s.id)}>Удалить</button></td>
                     </tr>
                 ))}
                 </tbody>
