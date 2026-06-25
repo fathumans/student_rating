@@ -3,6 +3,7 @@ version: "3.9"
 services:
   backend:
     build: ./backend
+    container_name: student-rating-backend
     ports:
       - "8000:8000"
     volumes:
@@ -10,14 +11,54 @@ services:
     environment:
       - PYTHONPATH=/app
       - PYTHONUNBUFFERED=1
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/docs')"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+    networks:
+      - student-network
 
   frontend:
     build: ./frontend
+    container_name: student-rating-frontend
     ports:
       - "80:80"
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 3s
+    networks:
+      - student-network
+
+  info:
+    image: busybox
+    container_name: student-rating-info
+    depends_on:
+      backend:
+        condition: service_healthy
+      frontend:
+        condition: service_healthy
+    command: >
+      sh -c "
+        echo '';
+        echo '  Рейтинговая система студентов запущена';
+        echo '';
+        echo '  Фронтенд:         http://localhost';
+        echo '  API:              http://localhost:8000';
+        echo '';
+        echo '  Ctrl+C для остановки';
+        echo '';
+      "
+    networks:
+      - student-network
 
 networks:
-  default:
+  student-network:
     driver: bridge
