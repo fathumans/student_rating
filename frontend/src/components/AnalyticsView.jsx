@@ -133,19 +133,19 @@ export default function AnalyticsView({ group }) {
 
             <div className="btn-group mb-3 w-100" role="group">
                 <button
-                    className={`btn btn-sm ${chartMode === 'distribution' ? 'btn-primary' : 'btn-outline-secondary'}`}
+                    className={`btn btn-sm ${chartMode === 'distribution' ? 'btn-secondary' : 'btn-outline-secondary'}`}
                     onClick={() => setChartMode('distribution')}
                 >
                     Распределение
                 </button>
                 <button
-                    className={`btn btn-sm ${chartMode === 'subject' ? 'btn-primary' : 'btn-outline-secondary'}`}
+                    className={`btn btn-sm ${chartMode === 'subject' ? 'btn-secondary' : 'btn-outline-secondary'}`}
                     onClick={() => setChartMode('subject')}
                 >
                     По студенту
                 </button>
                 <button
-                    className={`btn btn-sm ${chartMode === 'comparison' ? 'btn-primary' : 'btn-outline-secondary'}`}
+                    className={`btn btn-sm ${chartMode === 'comparison' ? 'btn-secondary' : 'btn-outline-secondary'}`}
                     onClick={() => setChartMode('comparison')}
                 >
                     Абс. vs Взв.
@@ -263,8 +263,8 @@ export default function AnalyticsView({ group }) {
                                 <YAxis domain={[0, 100]} tick={{fontSize: 11}} width={30} />
                                 <Tooltip contentStyle={{ borderRadius: 8, border: 'none', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }} />
                                 <Legend wrapperStyle={{fontSize: 12}} />
-                                <Bar dataKey="absolute" fill="#0d6efd" radius={[4, 4, 0, 0]} name="Абсолютный" maxBarSize={28} />
-                                <Bar dataKey="weighted" fill="#6c757d" radius={[4, 4, 0, 0]} name="Взвешенный" maxBarSize={28} />
+                                <Bar dataKey="absolute" fill="#495057" radius={[4, 4, 0, 0]} name="Абсолютный" maxBarSize={28} />
+                                <Bar dataKey="weighted" fill="#477cb3" radius={[4, 4, 0, 0]} name="Взвешенный" maxBarSize={28} />
                             </BarChart>
                         </ResponsiveContainer>
                     </div>

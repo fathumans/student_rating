@@ -40,10 +40,32 @@ export const api = {
     getStudentDetail: (id) => request(`/rating/student/${id}`),
 
     // Аналитика
-    getProblems: (threshold = 0.20) => request(`/rating/problems?threshold=${threshold}`),
-    getStatistics: () => request('/rating/statistics'),
     getDynamics: (p1, p2) => request(`/rating/dynamics?period1=${encodeURIComponent(p1)}&period2=${encodeURIComponent(p2)}`),
 
     // Экспорт
-    exportCSV: () => window.open(`${API_URL}/rating/export`, '_blank'),
-};
+    exportCSV(group) {
+        // Получаем текущий рейтинг
+        return this.getRatingCombined().then(students => {
+            // Фильтруем по группе
+            const filtered = group
+                ? students.filter(s => s.group === group)
+                : students;
+
+            // Формируем CSV вручную
+            const BOM = '\uFEFF';
+            const header = 'Место (абс);Место (взв);ФИО;Группа;Абс. балл;Взв. балл\n';
+            const rows = filtered.map(s =>
+                `${s.absolute_rank};${s.weighted_rank};${s.name};${s.group};${s.absolute_rating};${s.weighted_rating}`
+            ).join('\n');
+
+            const csv = BOM + header + rows;
+
+            // Скачивание
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `rating_${group || 'all'}.csv`;
+            a.click();
+            URL.revokeObjectURL(a.href);
+        });
+    }}
