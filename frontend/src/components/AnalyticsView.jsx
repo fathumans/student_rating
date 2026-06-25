@@ -9,10 +9,11 @@ export default function AnalyticsView({ group }) {
     const [students, setStudents] = useState([]);
     const [subjects, setSubjects] = useState([]);
     const [combined, setCombined] = useState([]);
-    const [grades, setGrades] = useState([]);   
+    const [grades, setGrades] = useState([]);
 
     const [chartMode, setChartMode] = useState('distribution');
     const [selectedStudent, setSelectedStudent] = useState('');
+    const [problems, setProblems] = useState([]);
     const [dynamics, setDynamics] = useState(null);
     const [p1, setP1] = useState('2025-осень');
     const [p2, setP2] = useState('2026-весна');
@@ -87,6 +88,33 @@ export default function AnalyticsView({ group }) {
             .sort((a, b) => b.absolute - a.absolute);
     }, [groupCombined]);
 
+    // === График 3: Проблемные предметы ===
+    const problemsData = useMemo(() => {
+        // Считаем средний балл по каждому предмету в группе
+        const subjectStats = {};
+        groupGrades.forEach(g => {
+            if (!subjectStats[g.subject_id]) {
+                subjectStats[g.subject_id] = { total: 0, count: 0 };
+            }
+            subjectStats[g.subject_id].total += g.total_score;
+            subjectStats[g.subject_id].count += 1;
+        });
+
+        return Object.entries(subjectStats)
+            .map(([subjectId, stats]) => {
+                const subject = subjects.find(s => s.id === Number(subjectId));
+                const avg = Math.round(stats.total / stats.count);
+                return {
+                    subject: subject ? subject.name : `ID${subjectId}`,
+                    average: avg,
+                    type: subject ? subject.type : 'exam',
+                    count: stats.count
+                };
+            })
+            .filter(s => s.average < 75) // Проблемные — ниже 75
+            .sort((a, b) => a.average - b.average);
+    }, [groupGrades, subjects]);
+
     const loadDynamics = async () => {
         try {
             const data = await api.getDynamics(p1, p2);
@@ -127,6 +155,26 @@ export default function AnalyticsView({ group }) {
         return null;
     };
 
+    const ProblemTooltip = ({ active, payload }) => {
+        if (active && payload && payload.length) {
+            const data = payload[0].payload;
+            const typeLabel = data.type === 'test' ? 'Зачёт' : data.type === 'practice' ? 'Практика' : 'Экзамен';
+            return (
+                <div className="bg-white border rounded shadow-sm p-2 small">
+                    <div className="fw-medium">{data.subject}</div>
+                    <div className="text-muted">{typeLabel}</div>
+                    <div className="mt-1">
+                        <span className="fw-bold" style={{ color: getScoreColor(data.average) }}>{data.average}</span>
+                        {' '}
+                        <span className="text-muted">({getScoreLabel(data.average)})</span>
+                    </div>
+                    <div className="text-muted mt-1">Оценок: {data.count}</div>
+                </div>
+            );
+        }
+        return null;
+    };
+
     return (
         <div>
             <h5 className="mb-3">Аналитика — {group}</h5>
@@ -149,6 +197,12 @@ export default function AnalyticsView({ group }) {
                     onClick={() => setChartMode('comparison')}
                 >
                     Абс. vs Взв.
+                </button>
+                <button
+                    className={`btn btn-sm ${chartMode === 'problems' ? 'btn-secondary' : 'btn-outline-secondary'}`}
+                    onClick={() => setChartMode('problems')}
+                >
+                    Проблемные предметы
                 </button>
             </div>
 
@@ -205,8 +259,8 @@ export default function AnalyticsView({ group }) {
                                 <div className="d-flex align-items-baseline gap-2 mb-3">
                                     <h6 className="card-subtitle text-muted mb-0">Успеваемость по предметам</h6>
                                     <span className="small text-muted">
-                    {students.find(s => s.id === Number(selectedStudent))?.name}
-                  </span>
+                                        {students.find(s => s.id === Number(selectedStudent))?.name}
+                                    </span>
                                 </div>
                                 <ResponsiveContainer width="100%" height={Math.max(300, studentProfileData.length * 40 + 40)}>
                                     <BarChart data={studentProfileData} layout="vertical" margin={{ left: 20, right: 50, top: 5, bottom: 5 }}>
@@ -267,6 +321,64 @@ export default function AnalyticsView({ group }) {
                                 <Bar dataKey="weighted" fill="#477cb3" radius={[4, 4, 0, 0]} name="Взвешенный" maxBarSize={28} />
                             </BarChart>
                         </ResponsiveContainer>
+                    </div>
+                </div>
+            )}
+
+            {/* 3. Проблемные предметы */}
+            {chartMode === 'problems' && (
+                <div className="card mb-4">
+                    <div className="card-body">
+                        <h6 className="card-subtitle mb-3 text-muted">
+                            Проблемные предметы — средний балл ниже 75
+                        </h6>
+                        {problemsData.length > 0 ? (
+                            <>
+                                <ResponsiveContainer width="100%" height={Math.max(300, problemsData.length * 40 + 40)}>
+                                    <BarChart data={problemsData} layout="vertical" margin={{ left: 20, right: 50, top: 5, bottom: 5 }}>
+                                        <CartesianGrid strokeDasharray="3 3" stroke="#e9ecef" horizontal={false} />
+                                        <XAxis type="number" domain={[0, 100]} tick={{fontSize: 11}} />
+                                        <YAxis
+                                            type="category"
+                                            dataKey="subject"
+                                            tick={{fontSize: 12}}
+                                            width={180}
+                                            interval={0}
+                                        />
+                                        <Tooltip content={<ProblemTooltip />} cursor={{fill: 'rgba(0,0,0,0.03)'}} />
+                                        <ReferenceLine
+                                            x={61}
+                                            stroke="#dc3545"
+                                            strokeDasharray="4 4"
+                                            label={{ value: 'Порог 61', position: 'top', fontSize: 10, fill: '#dc3545' }}
+                                        />
+                                        <ReferenceLine
+                                            x={75}
+                                            stroke="#ffc107"
+                                            strokeDasharray="4 4"
+                                            label={{ value: 'Порог 75', position: 'top', fontSize: 10, fill: '#ffc107' }}
+                                        />
+                                        <Bar dataKey="average" radius={[0, 4, 4, 0]} maxBarSize={22} animationDuration={800}>
+                                            {problemsData.map((entry, index) => (
+                                                <Cell key={index} fill={getScoreColor(entry.average)} />
+                                            ))}
+                                            <LabelList dataKey="average" position="right" style={{ fontSize: 12, fontWeight: 500, fill: '#495057' }} />
+                                        </Bar>
+                                    </BarChart>
+                                </ResponsiveContainer>
+
+                                <div className="d-flex flex-wrap gap-3 mt-3 small text-muted">
+                                    <span><span className="d-inline-block rounded-circle me-1" style={{width: 10, height: 10, background: '#198754'}}></span>Отлично (91-100)</span>
+                                    <span><span className="d-inline-block rounded-circle me-1" style={{width: 10, height: 10, background: '#0d6efd'}}></span>Хорошо (76-90)</span>
+                                    <span><span className="d-inline-block rounded-circle me-1" style={{width: 10, height: 10, background: '#ffc107'}}></span>Удовл. (61-75)</span>
+                                    <span><span className="d-inline-block rounded-circle me-1" style={{width: 10, height: 10, background: '#dc3545'}}></span>Неуд. (0-60)</span>
+                                </div>
+                            </>
+                        ) : (
+                            <div className="text-center text-muted py-5">
+                                <p className="mb-0">Нет проблемных предметов — все средние баллы выше 75!</p>
+                            </div>
+                        )}
                     </div>
                 </div>
             )}
