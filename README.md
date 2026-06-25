@@ -48,7 +48,7 @@
 
 ```bash
 # 1. Клонировать репозиторий
-git clone https://github.com/<username>/student_rating.git
+git clone https://github.com/fathumans/student_rating.git
 cd student_rating
 
 # 2. Бэкенд
