@@ -26,14 +26,7 @@ services:
     ports:
       - "80:80"
     depends_on:
-      backend:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/"]
-      interval: 5s
-      timeout: 3s
-      retries: 5
-      start_period: 3s
+      - backend
     networks:
       - student-network
 
@@ -41,10 +34,8 @@ services:
     image: busybox
     container_name: student-rating-info
     depends_on:
-      backend:
-        condition: service_healthy
-      frontend:
-        condition: service_healthy
+      - backend
+      - frontend
     command: >
       sh -c "
         echo '';
