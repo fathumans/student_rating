@@ -28,21 +28,21 @@ TEST_SUBJECTS = [
 ]
 
 TEST_GRADES = [
-    {"id": 1, "student_id": 1, "subject_id": 1, "period": "2024-весна", "current": 38, "final": 55},
-    {"id": 2, "student_id": 1, "subject_id": 2, "period": "2024-весна", "current": 40, "final": 60},
-    {"id": 3, "student_id": 1, "subject_id": 3, "period": "2024-весна", "current": 40, "final": 58},
-    {"id": 4, "student_id": 2, "subject_id": 1, "period": "2024-весна", "current": 35, "final": 48},
-    {"id": 5, "student_id": 2, "subject_id": 2, "period": "2024-весна", "current": 40, "final": 60},
-    {"id": 6, "student_id": 2, "subject_id": 3, "period": "2024-весна", "current": 36, "final": 45},
-    {"id": 7, "student_id": 3, "subject_id": 1, "period": "2024-весна", "current": 40, "final": 60},
-    {"id": 8, "student_id": 3, "subject_id": 2, "period": "2024-весна", "current": 40, "final": 60},
-    {"id": 9, "student_id": 3, "subject_id": 3, "period": "2024-весна", "current": 40, "final": 60},
-    {"id": 10, "student_id": 4, "subject_id": 1, "period": "2024-весна", "current": 32, "final": 38},
-    {"id": 11, "student_id": 4, "subject_id": 2, "period": "2024-весна", "current": 35, "final": 45},
-    {"id": 12, "student_id": 4, "subject_id": 3, "period": "2024-весна", "current": 33, "final": 40},
-    {"id": 13, "student_id": 5, "subject_id": 1, "period": "2024-весна", "current": 30, "final": 31},
-    {"id": 14, "student_id": 5, "subject_id": 2, "period": "2024-весна", "current": 40, "final": 60},
-    {"id": 15, "student_id": 5, "subject_id": 3, "period": "2024-весна", "current": 40, "final": 51},
+    {"id": 1, "student_id": 1, "subject_id": 1, "period": "2026-весна", "current": 38, "final": 55},
+    {"id": 2, "student_id": 1, "subject_id": 2, "period": "2026-весна", "current": 40, "final": 60},
+    {"id": 3, "student_id": 1, "subject_id": 3, "period": "2026-весна", "current": 40, "final": 58},
+    {"id": 4, "student_id": 2, "subject_id": 1, "period": "2026-весна", "current": 35, "final": 48},
+    {"id": 5, "student_id": 2, "subject_id": 2, "period": "2026-весна", "current": 40, "final": 60},
+    {"id": 6, "student_id": 2, "subject_id": 3, "period": "2026-весна", "current": 36, "final": 45},
+    {"id": 7, "student_id": 3, "subject_id": 1, "period": "2026-весна", "current": 40, "final": 60},
+    {"id": 8, "student_id": 3, "subject_id": 2, "period": "2026-весна", "current": 40, "final": 60},
+    {"id": 9, "student_id": 3, "subject_id": 3, "period": "2026-весна", "current": 40, "final": 60},
+    {"id": 10, "student_id": 4, "subject_id": 1, "period": "2026-весна", "current": 32, "final": 38},
+    {"id": 11, "student_id": 4, "subject_id": 2, "period": "2026-весна", "current": 35, "final": 45},
+    {"id": 12, "student_id": 4, "subject_id": 3, "period": "2026-весна", "current": 33, "final": 40},
+    {"id": 13, "student_id": 5, "subject_id": 1, "period": "2026-весна", "current": 30, "final": 31},
+    {"id": 14, "student_id": 5, "subject_id": 2, "period": "2026-весна", "current": 40, "final": 60},
+    {"id": 15, "student_id": 5, "subject_id": 3, "period": "2026-весна", "current": 40, "final": 51},
 ]
 
 
@@ -182,19 +182,28 @@ def test_export_csv():
 
 
 def test_dynamics():
-    response = client.get("/api/rating/dynamics?period1=2023-осень&period2=2024-весна")
+    response = client.get("/api/rating/dynamics?period1=2025-осень&period2=2026-весна")
     assert response.status_code == 200
     data = response.json()
     assert "absolute" in data
     assert "weighted" in data
     assert "trend" in data["absolute"]
 
+def test_grade_validation_current_too_high():
+    response = client.post("/api/grades", json={
+        "student_id": 1,
+        "subject_id": 1,
+        "period": "2026-весна",
+        "current": 45,
+        "final": 50
+    })
+    assert response.status_code == 422
 
 def test_create_and_enrich_grade():
     response = client.post("/api/grades", json={
         "student_id": 1,
         "subject_id": 1,
-        "period": "2024-весна",
+        "period": "2026-весна",
         "current": 35,
         "final": 50
     })
@@ -205,22 +214,11 @@ def test_create_and_enrich_grade():
     assert data["status"] == "Хорошо"
 
 
-def test_grade_validation_current_too_high():
-    response = client.post("/api/grades", json={
-        "student_id": 1,
-        "subject_id": 1,
-        "period": "2024-весна",
-        "current": 45,
-        "final": 50
-    })
-    assert response.status_code == 422
-
-
 def test_grade_validation_final_too_high():
     response = client.post("/api/grades", json={
         "student_id": 1,
         "subject_id": 1,
-        "period": "2024-весна",
+        "period": "2026-весна",
         "current": 30,
         "final": 70
     })
